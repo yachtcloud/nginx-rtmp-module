@@ -9,7 +9,7 @@
 #include "ngx_rtmp_live_module.h"
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_codec_module.h"
-
+#include "ngx_rtmp_timestamp_fix.c"
 
 static ngx_rtmp_publish_pt              next_publish;
 static ngx_rtmp_play_pt                 next_play;
@@ -692,60 +692,6 @@ next:
     return next_pause(s, v);
 }
 
-
-struct ts
-{
-    u_char *name;
-    uint32_t timestamp;
-    uint32_t return_timestamp;
-    struct ts *next;
-};
-
-struct ts *root_ts;
-
-uint32_t get_offset (u_char *name, uint32_t current_ts) {
-  if (root_ts == NULL) {
-    root_ts = malloc(sizeof(struct ts));
-    root_ts->name = name;
-    root_ts->timestamp = current_ts;
-    root_ts->return_timestamp = 0;
-    root_ts->next = NULL;
-    return (uint32_t) 0;
-  }
-
-  struct ts *cur = root_ts;
-  struct ts *last = root_ts;
-  while (cur != NULL) {
-    if (strcmp((char *) name, (char *) cur->name) == 0) {
-      break;
-    }
-    last = cur;
-    cur = cur->next;  
-  }
-
-  // not found
-  if (cur == NULL) {    
-    struct ts *next = malloc(sizeof(struct ts));
-    next->name = name;
-    next->timestamp = current_ts;
-    next->return_timestamp = 0;
-    next->next = NULL;
-    last->next = next;
-    return (uint32_t) 0;
-  } else {
-    // found
-    if (current_ts < cur->timestamp) {
-      return cur->timestamp;
-      //cur->return_timestamp = cur->timestamp;
-    }
-    cur->timestamp = current_ts;
-    return 0;
-    //return cur->return_timestamp;
-  }
-}
-
-
-
 static ngx_int_t
 ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                  ngx_chain_t *in)
@@ -803,8 +749,14 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
                    "live: %s packet timestamp=%uD",
                    type_s, h->timestamp);
 
-    uint32_t offset = get_offset(ctx->stream->name, s->current_time);
-    h->timestamp = h->timestamp + offset;
+    /**
+     * timestamp fix start
+     */
+    h->timestamp = h->timestamp + get_offset(ctx->stream->name, s->current_time);
+    /**
+     * timestamp fix end
+     */
+
     s->current_time = h->timestamp;
 
     peers = 0;
