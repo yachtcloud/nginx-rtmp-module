@@ -708,6 +708,8 @@ uint32_t get_offset (u_char *name, uint32_t current_ts) {
     root_ts = malloc(sizeof(struct ts));
     root_ts->name = name;
     root_ts->timestamp = current_ts;
+    root_ts->return_timestamp = 0;
+    root_ts->next = NULL;
     return (uint32_t) 0;
   }
 
@@ -723,9 +725,12 @@ uint32_t get_offset (u_char *name, uint32_t current_ts) {
 
   // not found
   if (cur == NULL) {    
-    last->next = malloc(sizeof(struct ts));
-    last->next->name = name;
-    last->next->timestamp = current_ts;
+    struct ts *next = malloc(sizeof(struct ts));
+    next->name = name;
+    next->timestamp = current_ts;
+    next->return_timestamp = 0;
+    next->next = NULL;
+    last->next = next;
     return (uint32_t) 0;
   } else {
     // found
