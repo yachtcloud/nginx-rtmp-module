@@ -1,6 +1,45 @@
 # NGINX-based Media Streaming Server
 ## nginx-rtmp-module
 
+### Build and install (YachtCloud)
+
+Download Nginx:
+
+    mkdir nginx
+    cd nginx/
+    wget http://nginx.org/download/nginx-1.13.7.tar.gz
+    tar -zxvf nginx-1.13.7.tar.gz
+
+Download nginx-rtmp-module:
+
+    git clone https://github.com/yachtcloud/nginx-rtmp-module.git
+
+Build and install:
+
+    cd nginx-1.13.7/
+    ./configure --add-module=../nginx-rtmp-module
+    make -j12
+    sudo make install
+
+Configure (`/usr/local/nginx/conf/nginx.conf`):
+
+    rtmp {
+            server {
+                    listen 1935;
+                    chunk_size 4096;
+                    publish_notify off;
+
+                    application live {
+                            live on;
+                            record off;
+                    }
+            }
+    }
+
+Start:
+
+    sudo killall nginx;sudo /usr/local/nginx/sbin/nginx
+
 
 ### Project blog
 
