@@ -27,11 +27,16 @@ Configure (`/usr/local/nginx/conf/nginx.conf`):
             server {
                     listen 1935;
                     chunk_size 4096;
-                    publish_notify off;
+                    buflen 5s;
 
                     application live {
                             live on;
                             record off;
+                            publish_notify off;
+                            wait_key on;
+                            play_restart off;
+                            idle_streams on;
+                            
                     }
             }
     }
