@@ -34,6 +34,7 @@ Configure (`/usr/local/nginx/conf/nginx.conf`):
                             record off;
                             publish_notify off;
                             wait_key on;
+                            wait_video on;
                             play_restart off;
                             idle_streams on;
                             
