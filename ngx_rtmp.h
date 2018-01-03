@@ -198,6 +198,10 @@ typedef struct {
     void                  **srv_conf;
     void                  **app_conf;
 
+    /* buffer_fix */
+    void **buffer;
+    int buffer_i;
+
     ngx_str_t              *addr_text;
     int                     connected;
 

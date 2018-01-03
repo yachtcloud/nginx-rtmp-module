@@ -16,6 +16,8 @@
 #include "ngx_rtmp_streams.h"
 
 
+
+
 typedef struct ngx_rtmp_live_ctx_s ngx_rtmp_live_ctx_t;
 typedef struct ngx_rtmp_live_stream_s ngx_rtmp_live_stream_t;
 
@@ -40,6 +42,7 @@ struct ngx_rtmp_live_ctx_s {
     unsigned                            publishing:1;
     unsigned                            silent:1;
     unsigned                            paused:1;
+    int buffer_sent;
 };
 
 
@@ -67,6 +70,7 @@ typedef struct {
     ngx_flag_t                          atc;
     ngx_flag_t                          interleave;
     ngx_flag_t                          wait_key;
+    ngx_flag_t                          buffer_fix;
     ngx_flag_t                          wait_video;
     ngx_flag_t                          publish_notify;
     ngx_flag_t                          play_restart;
@@ -79,5 +83,6 @@ typedef struct {
 
 extern ngx_module_t  ngx_rtmp_live_module;
 
+void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
 
 #endif /* _NGX_RTMP_LIVE_H_INCLUDED_ */
