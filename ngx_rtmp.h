@@ -198,14 +198,10 @@ typedef struct {
     void                  **srv_conf;
     void                  **app_conf;
 
-    /* buffer_fix */
-    void **buffer;
-    int buffer_i;
-	int buffer_was_bursted;
-	int buffer_is_full;
-
     ngx_str_t              *addr_text;
     int                     connected;
+
+	char *name;
 
 #if (nginx_version >= 1007005)
     ngx_queue_t             posted_dry_events;

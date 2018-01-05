@@ -1087,7 +1087,12 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 
     /* buffer_fix */
 	if (lacf->kfbuflen > 0) {
-    	buffer_alloc(s);
+		s->name = (char *) v->name;
+		
+		struct bufstr *bs = bufstr_get(s->name);
+		bufstr_upsert(s->name, s);
+		if (bs == NULL)
+	    	buffer_alloc(s);
 	}
 
     ngx_rtmp_live_join(s, v->name, 1);
@@ -1129,8 +1134,11 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 
     /* buffer_fix */
 	if (lacf->kfbuflen > 0) {
-    	s->buffer_i = -1;
-		s->buffer_was_bursted = 0;
+		s->name = buffer_get_pointer_as_string(s);
+		bufstr_upsert(s->name, s);
+		struct bufstr *bs = bufstr_get(s->name);
+    	bs->buffer_i = -1;
+		bs->buffer_was_bursted = 0;
 	}
 
     ngx_rtmp_live_join(s, v->name, 0);
