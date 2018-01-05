@@ -70,7 +70,7 @@ typedef struct {
     ngx_flag_t                          atc;
     ngx_flag_t                          interleave;
     ngx_flag_t                          wait_key;
-    ngx_flag_t                          buffer_fix;
+    ngx_int_t                           kfbuflen;
     ngx_flag_t                          wait_video;
     ngx_flag_t                          publish_notify;
     ngx_flag_t                          play_restart;

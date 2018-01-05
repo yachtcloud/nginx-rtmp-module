@@ -11,7 +11,7 @@
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_netcall_module.h"
 #include "ngx_rtmp_streams.h"
-
+#include "ngx_rtmp_live_module.h"
 
 static ngx_rtmp_play_pt                 next_play;
 static ngx_rtmp_close_stream_pt         next_close_stream;
@@ -221,6 +221,7 @@ ngx_rtmp_play_join(ngx_rtmp_session_t *s)
     ctx->next = *pctx;
     *pctx = ctx;
     ctx->joined = 1;
+
 
     return NGX_OK;
 }

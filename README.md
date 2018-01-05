@@ -37,6 +37,7 @@ Configure (`/usr/local/nginx/conf/nginx.conf`):
                             wait_video on;
                             play_restart off;
                             idle_streams on;
+                            key_frame_buffer 500;
                             
                     }
             }

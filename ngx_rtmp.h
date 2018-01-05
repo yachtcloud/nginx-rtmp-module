@@ -201,6 +201,8 @@ typedef struct {
     /* buffer_fix */
     void **buffer;
     int buffer_i;
+	int buffer_was_bursted;
+	int buffer_is_full;
 
     ngx_str_t              *addr_text;
     int                     connected;
