@@ -41,7 +41,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
         root_bufstr->next = NULL;
     } else if (cur == NULL) {
         printf("buffer: new session %s\n", name);
-        struct bufstr *nw = root_bufstr;
+        struct bufstr *nw;
         nw = malloc(sizeof(struct bufstr));
         nw->name = (char *)name;
         nw->s = s;

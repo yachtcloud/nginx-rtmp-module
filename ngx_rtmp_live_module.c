@@ -1087,8 +1087,11 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 
     /* buffer_fix */
 	if (lacf->kfbuflen > 0) {
-		s->name = (char *) v->name;
-		
+		char *cname;
+		cname = malloc(sizeof(char)*strlen((char *)v->name));
+		strcpy(cname,(char *)v->name);
+		s->name = cname;
+
 		struct bufstr *bs = bufstr_get(s->name);
 		bufstr_upsert(s->name, s);
 		if (bs == NULL)
