@@ -5,6 +5,12 @@
 #include "ngx_rtmp_codec_module.h"
 
 
+struct bufreceiver {
+    ngx_rtmp_session_t *s;
+    struct bufreceiver *next;
+};
+
+
 struct bufstr {
     char *name;
     void **buffer;
@@ -13,13 +19,16 @@ struct bufstr {
     int buffer_is_full;
     int buffer_is_allocated;
     ngx_rtmp_session_t *s;
-
+    struct bufreceiver *r;
     struct bufstr *next;
-
 };
 
 int BUFFER_SIZE = 500;
 struct bufstr *root_bufstr = NULL;
+
+
+
+
 
 void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
     struct bufstr *last = root_bufstr;
@@ -39,6 +48,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
         root_bufstr->name = (char *)name;
         root_bufstr->s = s;
         root_bufstr->next = NULL;
+        root_bufstr->r = NULL;
     } else if (cur == NULL) {
         printf("buffer: new session %s\n", name);
         struct bufstr *nw;
@@ -46,6 +56,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
         nw->name = (char *)name;
         nw->s = s;
         nw->next = NULL;
+        nw->r = NULL;
         last->next = nw;
     } else {
         printf("buffer: update session %s\n", name);
@@ -75,6 +86,50 @@ struct bufitem {
     uint32_t                        delta;
     ngx_rtmp_header_t               ch, lh, clh;
 };
+
+
+
+
+
+void buffer_publisher_register (ngx_rtmp_session_t *p, ngx_rtmp_session_t *r) {
+
+    struct bufstr *bp = bufstr_get(p->name);
+
+    struct bufreceiver *cur = bp->r;
+    struct bufreceiver *last = bp->r;
+
+    while (cur != NULL) {
+        last = cur;
+        cur = cur->next;
+    }
+
+    struct bufreceiver *n = malloc(sizeof(struct bufreceiver));
+    n->s = r;
+    n->next = NULL;
+
+    if (last == NULL) {
+        printf("nw\n");
+        bp->r = n;
+    } else {
+        last->next = n;   
+    }
+
+}
+
+void buffer_reset_buffer_i (ngx_rtmp_session_t *s) {
+
+	struct bufstr *bs = bufstr_get(s->name);
+    struct bufreceiver *cur = bs->r;
+
+    while (cur != NULL) {
+		struct bufstr *br = bufstr_get(cur->s->name);
+        printf("buffer: pointer reset %s %d > %d\n", cur->s->name, br->buffer_i, bs->buffer_i);
+    	br->buffer_i = bs->buffer_i;
+        cur = cur->next;
+    }
+
+}
+
 
 void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
 static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp_live_ctx_t *pctx);
