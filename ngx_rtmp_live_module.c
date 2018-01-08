@@ -1094,10 +1094,11 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 
 		struct bufstr *bs = bufstr_get(s->name);
 		bufstr_upsert(s->name, s);
+
 		if (bs == NULL)
-	    	buffer_alloc(s);
-        else 
-            buffer_reset_buffer_i(s);
+	    		buffer_alloc(s);
+        	else 
+            		buffer_reset_buffer_i(s);
 	}
 
     ngx_rtmp_live_join(s, v->name, 1);
@@ -1148,7 +1149,6 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
         char *cname;
 		cname = malloc(sizeof(char)*strlen((char *)v->name));
 		strcpy(cname,(char *)v->name);
-		s->name = cname;
 
         struct bufstr *bp = bufstr_get(cname);
         if (bp != NULL) {

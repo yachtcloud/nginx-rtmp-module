@@ -92,7 +92,6 @@ struct bufitem {
 
 
 void buffer_publisher_register (ngx_rtmp_session_t *p, ngx_rtmp_session_t *r) {
-
     struct bufstr *bp = bufstr_get(p->name);
 
     struct bufreceiver *cur = bp->r;
@@ -117,7 +116,6 @@ void buffer_publisher_register (ngx_rtmp_session_t *p, ngx_rtmp_session_t *r) {
 }
 
 void buffer_reset_buffer_i (ngx_rtmp_session_t *s) {
-
 	struct bufstr *bs = bufstr_get(s->name);
     struct bufreceiver *cur = bs->r;
 
