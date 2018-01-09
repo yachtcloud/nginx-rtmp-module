@@ -388,6 +388,7 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
     uint32_t                        delta;
     ngx_rtmp_live_chunk_stream_t   *cs;
 
+
     lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
     if (lacf == NULL) {
         return NGX_ERROR;
@@ -400,6 +401,12 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
 
     ngx_chain_t *in = bi->pkt;
     ngx_rtmp_header_t *h = bi->h;
+#ifdef NGX_DEBUG
+    const char                     *type_s;
+
+    type_s = (h->type == NGX_RTMP_MSG_VIDEO ? "video" : "audio");
+#endif
+
 
     peers = 0;
     apkt = NULL;
