@@ -72,6 +72,7 @@ typedef struct {
     ngx_flag_t                          wait_key;
     ngx_int_t                           kfbuflen;
     ngx_flag_t                          wait_video;
+    ngx_flag_t                          kfburst;
     ngx_flag_t                          publish_notify;
     ngx_flag_t                          play_restart;
     ngx_flag_t                          idle_streams;

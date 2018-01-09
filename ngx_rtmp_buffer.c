@@ -123,6 +123,7 @@ void buffer_reset_buffer_i (ngx_rtmp_session_t *s) {
 		struct bufstr *br = bufstr_get(cur->s->name);
         printf("buffer: pointer reset %s %d > %d\n", cur->s->name, br->buffer_i, bs->buffer_i);
     	br->buffer_i = bs->buffer_i;
+	ngx_rtmp_live_start(br->s);
         cur = cur->next;
     }
 
@@ -180,6 +181,55 @@ int buffer_find_next(ngx_rtmp_session_t *s) {
     }
 }
 
+
+int buffer_find_kf_next2(ngx_rtmp_session_t *s) {
+    struct bufstr *b = bufstr_get(s->name);
+
+    int start = -1;
+    int i;
+    int end = b->buffer_i;
+    struct bufitem *pkt;
+    int kfc = 0;
+
+    for (i=end; i>=0; i--) {
+
+
+        pkt = b->buffer[i];
+
+
+	    if (pkt != NULL && pkt->kf==1) kfc++;
+        if (kfc==2 && pkt != NULL && pkt->kf == 1) {
+            start = i;
+            break;
+        }
+    }
+    if (start == -1) {
+        for (i=BUFFER_SIZE; i>end; i--) {
+
+            pkt = b->buffer[i];
+	    if (pkt != NULL && pkt->kf==1) kfc++;
+            if (kfc==2 && pkt != NULL && pkt->kf == 1) {
+                start = i;
+                break;
+            }
+        }
+    }
+
+    if (start == -1) {
+        printf("buffer: no key frame in buffer!\n");
+        return 0;
+    }
+
+    if (start >= BUFFER_SIZE) {
+        start = 0;
+    }
+
+    printf("buffer: new client, sending from %d\n", start);
+    return start;
+}
+
+
+
 int buffer_find_kf_next(ngx_rtmp_session_t *s) {
     struct bufstr *b = bufstr_get(s->name);
 
@@ -234,7 +284,8 @@ int buffer_add(ngx_rtmp_session_t *s, struct bufitem *i) {
     struct bufitem *prev;
 
     int next = buffer_find_next(s);
-    //printf(" buffer: add %d\n", next);
+
+   // printf(" buffer: add %d %u\n", next, i->ch.timestamp);
     if (i->kf == 1) printf("buffer: keyframe!\n");
 
     prev = b->buffer[next];
@@ -270,7 +321,6 @@ int buffer_get_cur(ngx_rtmp_session_t *publisher, ngx_rtmp_session_t *receiver) 
 
 static void buffer_burst(ngx_rtmp_session_t *s, ngx_rtmp_live_ctx_t *pctx)
 {
-    return;
     struct bufstr *b = bufstr_get(s->name);
     struct bufstr *br = bufstr_get(pctx->session->name);
 
@@ -279,31 +329,43 @@ static void buffer_burst(ngx_rtmp_session_t *s, ngx_rtmp_live_ctx_t *pctx)
     int start = buffer_get_cur(s, pctx->session);
     start--;
     int end = b->buffer_i;
+
+
     struct bufitem *bi;
     int tend = end;
     int otherhalf = -1;
     int i;
 
+
     printf("buffer: bursting %d-%d\n", start, end);
+
 
     if (tend < start) {
         tend = BUFFER_SIZE;
         otherhalf = end;
     }
 
+        //ngx_rtmp_live_start(br->s);
+	
     for (i = start; i<tend; i++) {
         bi = b->buffer[i];
+    	    br->buffer_i = i;
+
         buffer_send(s, bi, pctx);
     }
 
     if (otherhalf != -1) {
         for (i = 0; i<otherhalf; i++) {
             bi = b->buffer[i];
+    	    br->buffer_i = i;
             buffer_send(s, bi, pctx);
         }
     }
 
-    br->buffer_i = end;
+    ngx_rtmp_live_start(br->s);
+
+
+
 }
 
 
@@ -363,8 +425,9 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
     lh = bi->lh;
     clh = bi->clh;
 
+    //struct bufstr *b = bufstr_get(pctx->session->name);
 
-    //printf("%u %u\n", ch.timestamp, delta);
+    //printf("%s %d %u %u\n",  pctx->session->name,b->buffer_i, ch.timestamp, delta);
 
     ngx_rtmp_prepare_message(s, &ch, &lh, rpkt);
 
@@ -700,7 +763,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     i->ch = ch;
     i->lh = lh;
     i->clh = clh;
-
+    
     buffer_add(s, i);
 
     struct bufstr *b = bufstr_get(s->name);
@@ -723,7 +786,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
             //disabled
             struct bufstr *br = bufstr_get(pctx->session->name);
-            if (0 && br->buffer_was_bursted == 0) {
+            if (lacf->kfburst == 1 && br->buffer_was_bursted == 0) {
                 buffer_burst(s, pctx);
                 continue;
             }

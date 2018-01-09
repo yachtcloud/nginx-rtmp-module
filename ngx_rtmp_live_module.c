@@ -88,6 +88,14 @@ static ngx_command_t  ngx_rtmp_live_commands[] = {
         offsetof(ngx_rtmp_live_app_conf_t, wait_video),
         NULL },
 
+    { ngx_string("key_frame_burst"),
+        NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+        ngx_conf_set_flag_slot,
+        NGX_RTMP_APP_CONF_OFFSET,
+        offsetof(ngx_rtmp_live_app_conf_t, kfburst),
+        NULL },
+
+
     { ngx_string("publish_notify"),
         NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
         ngx_conf_set_flag_slot,
@@ -167,6 +175,7 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
     lacf->interleave = NGX_CONF_UNSET;
     lacf->wait_key = NGX_CONF_UNSET;
     lacf->wait_video = NGX_CONF_UNSET;
+    lacf->kfburst = NGX_CONF_UNSET;
     lacf->publish_notify = NGX_CONF_UNSET;
     lacf->play_restart = NGX_CONF_UNSET;
     lacf->idle_streams = NGX_CONF_UNSET;
@@ -191,6 +200,7 @@ ngx_rtmp_live_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->wait_key, prev->wait_key, 1);
 
     ngx_conf_merge_value(conf->wait_video, prev->wait_video, 0);
+    ngx_conf_merge_value(conf->kfburst, prev->kfburst, 0);
     ngx_conf_merge_value(conf->publish_notify, prev->publish_notify, 0);
     ngx_conf_merge_value(conf->play_restart, prev->play_restart, 0);
     ngx_conf_merge_value(conf->idle_streams, prev->idle_streams, 1);
@@ -1087,6 +1097,7 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
 
     /* buffer_fix */
 	if (lacf->kfbuflen > 0) {
+
 		char *cname;
 		cname = malloc(sizeof(char)*strlen((char *)v->name));
 		strcpy(cname,(char *)v->name);
