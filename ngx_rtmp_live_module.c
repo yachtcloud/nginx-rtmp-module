@@ -1113,10 +1113,8 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
 
-      char *cname;
-      cname = malloc(sizeof(char)*strlen((char *)v->name));
-      strcpy(cname,(char *)v->name);
-      s->name = cname;
+      s->name = malloc(sizeof(char)*(strlen((char *)v->name)+1));
+      strcpy(s->name,(char *)v->name);
 
       struct bufstr *bs = bufstr_get(s->name);
       bufstr_upsert(s->name, s);
@@ -1168,17 +1166,13 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
     if (lacf->kfbuflen > 0) {
       s->name = buffer_get_pointer_as_string(s);
       bufstr_upsert(s->name, s);
-      struct bufstr *bs = bufstr_get(s->name);
       buffer_alloc(s);
 
+      struct bufstr *bs = bufstr_get(s->name);
       *bs->buffer_i = -1;
       *bs->buffer_was_bursted = 0;
 
-      char *cname;
-      cname = malloc(sizeof(char)*strlen((char *)v->name));
-      strcpy(cname,(char *)v->name);
-
-      struct bufstr *bp = bufstr_get(cname);
+      struct bufstr *bp = bufstr_get((char *)v->name);
 
       if (bp != NULL) {
         buffer_publisher_register(bp->s, s);

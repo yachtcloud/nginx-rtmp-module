@@ -59,7 +59,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
   struct bufstr *cur = root_bufstr;
 
   while (cur != NULL) {
-    if (strcmp((char *) name, (char *) cur->name) == 0) {
+    if (strcmp(name, cur->name) == 0) {
       break;
     }
     last = cur;
@@ -70,7 +70,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 
     printf("buffer: new session %s\n", name);
     root_bufstr = malloc(sizeof(struct bufstr));
-    root_bufstr->name = (char *)name;
+    root_bufstr->name = name;
     root_bufstr->s = s;
     root_bufstr->next = NULL;
     root_bufstr->r = NULL;
@@ -82,7 +82,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
     struct bufstr *nw;
     nw = malloc(sizeof(struct bufstr));
 
-    nw->name = (char *)name;
+    nw->name = name;
     nw->s = s;
     nw->next = NULL;
     nw->r = NULL;
@@ -90,7 +90,10 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 
   } else {
     printf("buffer: update session %s\n", name);
+    char *oldname = cur->name;
+    cur->name = name;
     cur->s = s;
+    free(oldname);
     printf("buffer: updated\n");
   }
 }
@@ -98,7 +101,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 struct bufstr *bufstr_get (char *name) {
   struct bufstr *cur = root_bufstr;
   while (cur != NULL) {
-    if (strcmp((char *) name, (char *) cur->name) == 0) {
+    if (strcmp(name,cur->name) == 0) {
       //printf("buffer: got %s\n", name);
       return cur;
     }
@@ -182,6 +185,7 @@ int *buffer_is_full(ngx_rtmp_session_t *s) {
   int *i = malloc(sizeof(int));
   for (*i=0; *i<BUFFER_SIZE; *i=*i+1) {
     if (b->buffer[*i] == NULL) {
+      free(i);
       *b->buffer_is_full = 0;
       return b->buffer_is_full;
     }
@@ -258,6 +262,9 @@ void buffer_free(ngx_rtmp_session_t *s) {
 
   printf("buffer: freeing obj\n");
   free(b);
+
+  //printf("buffer: freeing name in rtmp session\n");
+  //free(s->name);
 
   printf("buffer: freed\n");
 }
@@ -441,6 +448,8 @@ void buffer_add(ngx_rtmp_session_t *s, struct bufitem *i) {
   prev = b->buffer[*next];
   b->buffer[*next] = i;
   *b->buffer_i = *next;
+
+  free(next);
 
   // free
   if (prev != NULL && prev->pkt != NULL) {
@@ -860,15 +869,10 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
   /**
    * timestamp fix start
    */
-  uint32_t *ct = malloc(sizeof(uint32_t));
-
   uint32_t *off;
-  *ct = s->current_time;
-  off = get_offset(ctx->stream->name, ct);
+  off = get_offset(ctx->stream->name, &s->current_time);
   if (off != NULL)
     h->timestamp = h->timestamp + *off;
-
-  free(ct);
   //free(off);
   /**
    * timestamp fix end
