@@ -74,6 +74,13 @@ static ngx_command_t  ngx_rtmp_live_commands[] = {
         offsetof(ngx_rtmp_live_app_conf_t, wait_key),
         NULL },
 
+    { ngx_string("key_frame_burst_kf2"),
+        NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
+        ngx_conf_set_flag_slot,
+        NGX_RTMP_APP_CONF_OFFSET,
+        offsetof(ngx_rtmp_live_app_conf_t, key_frame_burst_kf2),
+        NULL },
+
     { ngx_string("key_frame_buffer"),
         NGX_RTMP_MAIN_CONF|NGX_RTMP_SRV_CONF|NGX_RTMP_APP_CONF|NGX_CONF_TAKE1,
         ngx_conf_set_num_slot,
@@ -174,6 +181,7 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
     lacf->idle_timeout = NGX_CONF_UNSET_MSEC;
     lacf->interleave = NGX_CONF_UNSET;
     lacf->wait_key = NGX_CONF_UNSET;
+    lacf->key_frame_burst_kf2 = NGX_CONF_UNSET;
     lacf->wait_video = NGX_CONF_UNSET;
     lacf->kfburst = NGX_CONF_UNSET;
     lacf->publish_notify = NGX_CONF_UNSET;
@@ -198,6 +206,7 @@ ngx_rtmp_live_merge_app_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_msec_value(conf->idle_timeout, prev->idle_timeout, 0);
     ngx_conf_merge_value(conf->interleave, prev->interleave, 0);
     ngx_conf_merge_value(conf->wait_key, prev->wait_key, 1);
+    ngx_conf_merge_value(conf->key_frame_burst_kf2, prev->key_frame_burst_kf2, 0);
 
     ngx_conf_merge_value(conf->wait_video, prev->wait_video, 0);
     ngx_conf_merge_value(conf->kfburst, prev->kfburst, 0);
@@ -624,6 +633,12 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
         }
     }
 
+    /* buffer_fix */
+    if (!ctx->publishing) {
+      buffer_publisher_free((char *)ctx->stream->name, s);
+      buffer_free(s);
+    }
+
     if (ctx->publishing || ctx->stream->active) {
         ngx_rtmp_live_stop(s);
     }
@@ -721,13 +736,23 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_chain_t *in)
 {
 
+    ngx_rtmp_live_app_conf_t       *lacf;
+
+    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
+    if (lacf == NULL) {
+        return NGX_ERROR;
+    }
+
+	  /* buffer_fix */
+	  if (lacf->kfbuflen > 0) {
+	  	return buffer_ngx_rtmp_live_av(s, h, in);
+	  }
 
     ngx_rtmp_live_ctx_t            *ctx, *pctx;
     ngx_rtmp_codec_ctx_t           *codec_ctx;
     ngx_chain_t                    *header, *coheader, *meta,
                                    *apkt, *aapkt, *acopkt, *rpkt;
     ngx_rtmp_core_srv_conf_t       *cscf;
-    ngx_rtmp_live_app_conf_t       *lacf;
     ngx_rtmp_session_t             *ss;
     ngx_rtmp_header_t               ch, lh, clh;
     ngx_int_t                       rc, mandatory, dummy_audio;
@@ -742,16 +767,6 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
     type_s = (h->type == NGX_RTMP_MSG_VIDEO ? "video" : "audio");
 #endif
-
-    lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
-    if (lacf == NULL) {
-        return NGX_ERROR;
-    }
-
-	/* buffer_fix */
-	if (lacf->kfbuflen > 0) {
-		return buffer_ngx_rtmp_live_av(s, h, in);
-	}
 
     if (!lacf->live || in == NULL  || in->buf == NULL) {
         return NGX_OK;
@@ -784,7 +799,7 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     /**
      * timestamp fix start
      */
-    h->timestamp = h->timestamp + get_offset(ctx->stream->name, s->current_time);
+    //h->timestamp = h->timestamp + get_offset(ctx->stream->name, s->current_time);
     /**
      * timestamp fix end
      */
@@ -1096,21 +1111,21 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     /* join stream as publisher */
 
     /* buffer_fix */
-	if (lacf->kfbuflen > 0) {
+    if (lacf->kfbuflen > 0) {
 
-		char *cname;
-		cname = malloc(sizeof(char)*strlen((char *)v->name));
-		strcpy(cname,(char *)v->name);
-		s->name = cname;
+      char *cname;
+      cname = malloc(sizeof(char)*strlen((char *)v->name));
+      strcpy(cname,(char *)v->name);
+      s->name = cname;
 
-		struct bufstr *bs = bufstr_get(s->name);
-		bufstr_upsert(s->name, s);
+      struct bufstr *bs = bufstr_get(s->name);
+      bufstr_upsert(s->name, s);
 
-		if (bs == NULL)
-	    		buffer_alloc(s);
-        	else 
-            		buffer_reset_buffer_i(s);
-	}
+      if (bs == NULL)
+        buffer_alloc(s);
+      else 
+        buffer_reset_buffer_i(s);
+    }
 
     ngx_rtmp_live_join(s, v->name, 1);
 
@@ -1150,22 +1165,25 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
     /* join stream as subscriber */
 
     /* buffer_fix */
-	if (lacf->kfbuflen > 0) {
-		s->name = buffer_get_pointer_as_string(s);
-		bufstr_upsert(s->name, s);
-		struct bufstr *bs = bufstr_get(s->name);
-    	bs->buffer_i = -1;
-		bs->buffer_was_bursted = 0;
+    if (lacf->kfbuflen > 0) {
+      s->name = buffer_get_pointer_as_string(s);
+      bufstr_upsert(s->name, s);
+      struct bufstr *bs = bufstr_get(s->name);
+      buffer_alloc(s);
 
-        char *cname;
-		cname = malloc(sizeof(char)*strlen((char *)v->name));
-		strcpy(cname,(char *)v->name);
+      *bs->buffer_i = -1;
+      *bs->buffer_was_bursted = 0;
 
-        struct bufstr *bp = bufstr_get(cname);
-        if (bp != NULL) {
-            buffer_publisher_register(bp->s, s);
-        }
-	}
+      char *cname;
+      cname = malloc(sizeof(char)*strlen((char *)v->name));
+      strcpy(cname,(char *)v->name);
+
+      struct bufstr *bp = bufstr_get(cname);
+
+      if (bp != NULL) {
+        buffer_publisher_register(bp->s, s);
+      }
+    }
 
     ngx_rtmp_live_join(s, v->name, 0);
 

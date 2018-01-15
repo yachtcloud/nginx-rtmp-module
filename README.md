@@ -38,7 +38,8 @@ Configure (`/usr/local/nginx/conf/nginx.conf`):
                             play_restart off;
                             idle_streams on;
                             key_frame_buffer 500;
-				key_frame_burst on;
+				                    key_frame_burst on;
+                            key_frame_burst_kf2 on;
                             
                     }
             }
