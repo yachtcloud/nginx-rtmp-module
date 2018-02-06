@@ -116,6 +116,7 @@ struct bufstr *bufstr_get (char *name) {
 
 void buffer_publisher_free (char *name, ngx_rtmp_session_t *r) {
   struct bufstr *bp = bufstr_get(name);
+  if (bp == NULL) return;
 
   struct bufreceiver *cur = bp->r;
   struct bufreceiver *last = bp->r;
