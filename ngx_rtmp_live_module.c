@@ -635,8 +635,8 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
 
     /* buffer_fix */
     if (!ctx->publishing) {
-      buffer_publisher_free((char *)ctx->stream->name, s);
-      buffer_free(s);
+        buffer_publisher_free((char *)ctx->stream->name, s);
+        buffer_free(s);
     }
 
     if (ctx->publishing || ctx->stream->active) {
@@ -743,10 +743,10 @@ ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         return NGX_ERROR;
     }
 
-	  /* buffer_fix */
-	  if (lacf->kfbuflen > 0) {
-	  	return buffer_ngx_rtmp_live_av(s, h, in);
-	  }
+    /* buffer_fix */
+    if (lacf->kfbuflen > 0) {
+        return buffer_ngx_rtmp_live_av(s, h, in);
+    }
 
     ngx_rtmp_live_ctx_t            *ctx, *pctx;
     ngx_rtmp_codec_ctx_t           *codec_ctx;
@@ -1113,16 +1113,16 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
 
-      s->name = malloc(sizeof(char)*(strlen((char *)v->name)+1));
-      strcpy(s->name,(char *)v->name);
+        s->name = malloc(sizeof(char)*(strlen((char *)v->name)+1));
+        strcpy(s->name,(char *)v->name);
 
-      struct bufstr *bs = bufstr_get(s->name);
-      bufstr_upsert(s->name, s);
+        struct bufstr *bs = bufstr_get(s->name);
+        bufstr_upsert(s->name, s);
 
-      if (bs == NULL)
-        buffer_alloc(s);
-      else 
-        buffer_reset_buffer_i(s);
+        if (bs == NULL)
+            buffer_alloc(s);
+        else 
+            buffer_reset_buffer_i(s);
     }
 
     ngx_rtmp_live_join(s, v->name, 1);
@@ -1164,19 +1164,19 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
-      s->name = buffer_get_pointer_as_string(s);
-      bufstr_upsert(s->name, s);
-      buffer_alloc(s);
+        s->name = buffer_get_pointer_as_string(s);
+        bufstr_upsert(s->name, s);
+        buffer_alloc(s);
 
-      struct bufstr *bs = bufstr_get(s->name);
-      *bs->buffer_i = -1;
-      *bs->buffer_was_bursted = 0;
+        struct bufstr *bs = bufstr_get(s->name);
+        *bs->buffer_i = -1;
+        *bs->buffer_was_bursted = 0;
 
-      struct bufstr *bp = bufstr_get((char *)v->name);
+        struct bufstr *bp = bufstr_get((char *)v->name);
 
-      if (bp != NULL) {
-        buffer_publisher_register(bp->s, s);
-      }
+        if (bp != NULL) {
+            buffer_publisher_register(bp->s, s);
+        }
     }
 
     ngx_rtmp_live_join(s, v->name, 0);

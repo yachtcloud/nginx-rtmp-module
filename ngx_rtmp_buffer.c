@@ -183,15 +183,13 @@ int *buffer_is_full(ngx_rtmp_session_t *s) {
   if (*b->buffer_is_full == 1)
     return b->buffer_is_full;
 
-  int *i = malloc(sizeof(int));
-  for (*i=0; *i<BUFFER_SIZE; *i=*i+1) {
-    if (b->buffer[*i] == NULL) {
-      free(i);
+  int i;
+  for (i=0; i<BUFFER_SIZE; i=i+1) {
+    if (b->buffer[i] == NULL) {
       *b->buffer_is_full = 0;
       return b->buffer_is_full;
     }
   }
-  free(i);
 
   printf("buffer: filled!\n");
   *b->buffer_is_full = 1;
@@ -240,11 +238,10 @@ void buffer_free(ngx_rtmp_session_t *s) {
 
   printf("buffer: freeing buffer\n");
   if (b->buffer != NULL) {
-    int *i = malloc(sizeof(int));
-    for (*i=0; *i<=BUFFER_SIZE; *i=*i+1) {
-      buffer_bufitem_free(s, b->buffer[*i]);
+    int i;
+    for (i=0; i<=BUFFER_SIZE; i=i+1) {
+      buffer_bufitem_free(s, b->buffer[i]);
     }
-    free(i);
   }
   
   printf("buffer: freeing vars\n");
@@ -293,11 +290,10 @@ void buffer_alloc(ngx_rtmp_session_t *s) {
 
   b->buffer = malloc(BUFFER_SIZE*sizeof(struct bufitem));
 
-  int *i = malloc(sizeof(int));
-  for (*i=0; *i<=BUFFER_SIZE; *i=*i+1) {
-    b->buffer[*i] = NULL;
+  int i;
+  for (i=0; i<=BUFFER_SIZE; i=i+1) {
+    b->buffer[i] = NULL;
   }
-  free(i);
 
   b->buffer_is_allocated = malloc(sizeof(int));
   b->buffer_is_full = malloc(sizeof(int));
@@ -332,33 +328,31 @@ int *buffer_find_kf_next2(ngx_rtmp_session_t *s) {
   struct bufitem *pkt;
 
   int *start = malloc(sizeof(int));
-  int *i = malloc(sizeof(int));
-  int *end = malloc(sizeof(int));
-  int *kfc = malloc(sizeof(int));
+  int i;
+  int end;
+  int kfc;
 
   *start = -1;
-  *end = *b->buffer_i;
-  *kfc = 0;
+  end = *b->buffer_i;
+  kfc = 0;
 
-  for (*i=*end; *i>=0; *i=*i-1) {
+  for (i=end; i>=0; i=i-1) {
 
+    pkt = b->buffer[i];
 
-    pkt = b->buffer[*i];
-
-
-    if (pkt != NULL && *pkt->kf==1) *kfc = *kfc+1;
-    if (*kfc==2 && pkt != NULL && *pkt->kf == 1) {
-      *start = *i;
+    if (pkt != NULL && *pkt->kf==1) kfc = kfc+1;
+    if (kfc==2 && pkt != NULL && *pkt->kf == 1) {
+      *start = i;
       break;
     }
   }
   if (*start == -1) {
-    for (*i=BUFFER_SIZE; *i>*end; *i=*i-1) {
+    for (i=BUFFER_SIZE; i>end; i=i-1) {
 
-      pkt = b->buffer[*i];
-      if (pkt != NULL && *pkt->kf==1) *kfc = *kfc+1;
-      if (*kfc==2 && pkt != NULL && *pkt->kf == 1) {
-        *start = *i;
+      pkt = b->buffer[i];
+      if (pkt != NULL && *pkt->kf==1) kfc = kfc+1;
+      if (kfc==2 && pkt != NULL && *pkt->kf == 1) {
+        *start = i;
         break;
       }
     }
@@ -372,11 +366,7 @@ int *buffer_find_kf_next2(ngx_rtmp_session_t *s) {
   if (*start >= BUFFER_SIZE) {
     *start = 0;
   }
-
-  free(i);
-  free(end);
-  free(kfc);
-
+  
   printf("buffer: new client, sending from %d\n", *start);
   return start;
 }
@@ -389,26 +379,26 @@ int *buffer_find_kf_next(ngx_rtmp_session_t *s) {
   struct bufitem *pkt;
 
   int *start = malloc(sizeof(int));
-  int *i = malloc(sizeof(int));
-  int *end = malloc(sizeof(int));
+  int i;
+  int end;
 
   *start = -1;
-  *end = *b->buffer_i;
+  end = *b->buffer_i;
 
-  for (*i=*end; *i>=0; *i=*i-1) {
+  for (i=end; i>=0; i=i-1) {
 
-    pkt = b->buffer[*i];
+    pkt = b->buffer[i];
     if (pkt != NULL && *pkt->kf == 1) {
-      *start = *i;
+      *start = i;
       break;
     }
   }
   if (*start == -1) {
-    for (*i=BUFFER_SIZE; *i>*end; *i=*i-1) {
+    for (i=BUFFER_SIZE; i>end; i=i-1) {
 
-      pkt = b->buffer[*i];
+      pkt = b->buffer[i];
       if (pkt != NULL && *pkt->kf == 1) {
-        *start = *i;
+        *start = i;
         break;
       }
     }
@@ -422,9 +412,6 @@ int *buffer_find_kf_next(ngx_rtmp_session_t *s) {
   if (*start >= BUFFER_SIZE) {
     *start = 0;
   }
-
-  free(i);
-  free(end);
 
   printf("buffer: new client, sending from %d\n", *start);
   return start;
@@ -489,47 +476,42 @@ static void buffer_burst(ngx_rtmp_session_t *s, ngx_rtmp_live_ctx_t *pctx)
   *br->buffer_was_bursted = 1;
 
   int *start = buffer_get_cur(s, pctx->session);
-  int *end = malloc(sizeof(int));
-  int *i = malloc(sizeof(int));
-  int *tend = malloc(sizeof(int));
-  int *otherhalf = malloc(sizeof(int));
+  int end;
+  int i;
+  int tend;
+  int otherhalf;
 
 
   *start=*start-1;
-  *end = *b->buffer_i;
-  *tend = *end;
-  *otherhalf = -1;
+  end = *b->buffer_i;
+  tend = end;
+  otherhalf = -1;
 
-  printf("buffer: bursting %d-%d\n", *start, *end);
+  printf("buffer: bursting %d-%d\n", *start, end);
 
-  if (*tend < *start) {
-    *tend = BUFFER_SIZE;
-    *otherhalf = *end;
+  if (tend < *start) {
+    tend = BUFFER_SIZE;
+    otherhalf = end;
   }
 
   //ngx_rtmp_live_start(br->s);
 
-  for (*i = *start; *i<*tend; *i=*i+1) {
-    bi = b->buffer[*i];
-    *br->buffer_i = *i;
+  for (i = *start; i<tend; i=i+1) {
+    bi = b->buffer[i];
+    *br->buffer_i = i;
 
     buffer_send(s, bi, pctx);
   }
 
-  if (*otherhalf != -1) {
-    for (*i = 0; *i<*otherhalf; *i=*i+1) {
-      bi = b->buffer[*i];
-      *br->buffer_i = *i;
+  if (otherhalf != -1) {
+    for (i = 0; i<otherhalf; i=i+1) {
+      bi = b->buffer[i];
+      *br->buffer_i = i;
       buffer_send(s, bi, pctx);
     }
   }
 
   ngx_rtmp_live_start(br->s);
-
-  free(end);
-  free(i);
-  free(tend);
-  free(otherhalf);
 
 }
 
