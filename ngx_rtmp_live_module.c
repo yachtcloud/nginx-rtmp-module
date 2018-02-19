@@ -188,6 +188,9 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
     lacf->play_restart = NGX_CONF_UNSET;
     lacf->idle_streams = NGX_CONF_UNSET;
 
+    /* buffer_fix */
+    buffer_init();
+
     return lacf;
 }
 
@@ -1169,14 +1172,27 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
         buffer_alloc(s);
 
         struct bufstr *bs = bufstr_get(s->name);
-        *bs->buffer_i = -1;
-        *bs->buffer_was_bursted = 0;
+	if (bs != NULL) {
+	  printf("buffer: setting defaults\n");
+          *bs->buffer_i = -1;
+          *bs->buffer_was_bursted = 0;
+	} else {
+	  printf("ERROR: upserted but not found\n");
+	  return NGX_OK;
+	}
 
-        struct bufstr *bp = bufstr_get((char *)v->name);
+	if (v && v->name) {
+		printf("buffer: joining %s...\n", v->name);
+		struct bufstr *bp = bufstr_get((char *)v->name);
 
-        if (bp != NULL) {
-            buffer_publisher_register(bp->s, s);
-        }
+		if (bp != NULL) {
+		    printf("buffer: registering to publisher - removed\n");
+		    //buffer_publisher_register(bp->s, s);
+		} else {
+		    printf("ERROR: subscriber about to join to non-existing stream...\n");
+		    return NGX_OK;
+		}
+	}
     }
 
     ngx_rtmp_live_join(s, v->name, 0);
