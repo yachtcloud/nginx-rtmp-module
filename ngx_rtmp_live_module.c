@@ -637,9 +637,11 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
     }
 
     /* buffer_fix */
-    if (!ctx->publishing) {
-        buffer_publisher_free((char *)ctx->stream->name, s);
-        buffer_free(s);
+    if (lacf->kfbuflen > 0) {
+	    if (!ctx->publishing) {
+		buffer_publisher_free((char *)ctx->stream->name, s);
+		buffer_free(s);
+	    }
     }
 
     if (ctx->publishing || ctx->stream->active) {
