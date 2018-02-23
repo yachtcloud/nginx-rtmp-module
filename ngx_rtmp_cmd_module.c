@@ -574,6 +574,10 @@ ngx_rtmp_cmd_play_init(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 static ngx_int_t
 ngx_rtmp_cmd_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 {
+    s->args.len = ngx_strlen(v->args);
+    s->args.data = ngx_palloc(s->connection->pool, s->args.len);
+    ngx_memcpy(s->args.data, v->args, s->args.len);
+
     return NGX_OK;
 }
 

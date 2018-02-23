@@ -1174,27 +1174,27 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
         buffer_alloc(s);
 
         struct bufstr *bs = bufstr_get(s->name);
-	if (bs != NULL) {
-	  printf("buffer: setting defaults\n");
-          *bs->buffer_i = -1;
-          *bs->buffer_was_bursted = 0;
-	} else {
-	  printf("ERROR: upserted but not found\n");
-	  //return NGX_OK;
-	}
+        if (bs != NULL) {
+          printf("buffer: setting defaults\n");
+              *bs->buffer_i = -1;
+              *bs->buffer_was_bursted = 0;
+        } else {
+          printf("ERROR: upserted but not found\n");
+          //return NGX_OK;
+        }
 
-	if (v && v->name) {
-		printf("buffer: joining %s...\n", v->name);
-		struct bufstr *bp = bufstr_get((char *)v->name);
+        if (v && v->name) {
+            printf("buffer: joining %s...\n", v->name);
+            struct bufstr *bp = bufstr_get((char *)v->name);
 
-		if (bp != NULL) {
-		    printf("buffer: registering to publisher - removed\n");
-		    //buffer_publisher_register(bp->s, s);
-		} else {
-		    printf("ERROR: subscriber about to join to non-existing stream...\n");
-		    //return NGX_OK;
-		}
-	}
+            if (bp != NULL) {
+                printf("buffer: registering to publisher - removed\n");
+                //buffer_publisher_register(bp->s, s);
+            } else {
+                printf("ERROR: subscriber about to join to non-existing stream...\n");
+                //return NGX_OK;
+            }
+        }
     }
 
     ngx_rtmp_live_join(s, v->name, 0);

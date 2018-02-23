@@ -342,6 +342,10 @@ ngx_rtmp_stat_client(ngx_http_request_t *r, ngx_chain_t ***lll,
     NGX_RTMP_STAT_ES(&s->connection->addr_text);
     NGX_RTMP_STAT_L("</address>");
 
+    NGX_RTMP_STAT_L("<args>");
+    NGX_RTMP_STAT_ES(&s->args);
+    NGX_RTMP_STAT_L("</args>");
+
     NGX_RTMP_STAT_L("<time>");
     NGX_RTMP_STAT(buf, ngx_snprintf(buf, sizeof(buf), "%i",
                   (ngx_int_t) (ngx_current_msec - s->epoch)) - buf);
