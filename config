@@ -1,5 +1,6 @@
 ngx_addon_name="ngx_rtmp_module"
 
+
 RTMP_CORE_MODULES="                                         \
                 ngx_rtmp_module                             \
                 ngx_rtmp_core_module                        \
@@ -91,6 +92,8 @@ RTMP_HTTP_SRCS="                                            \
                 $ngx_addon_dir/ngx_rtmp_stat_module.c       \
                 $ngx_addon_dir/ngx_rtmp_control_module.c    \
                 "
+
+ngx_module_libs=-levent
 
 if [ -f auto/module ] ; then
     ngx_module_incs=$ngx_addon_dir

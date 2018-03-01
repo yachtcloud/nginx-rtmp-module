@@ -1,13 +1,13 @@
 struct ts
 {
-    u_char *name;
+    char *name;
     uint32_t *timestamp;
     struct ts *next;
 };
 
 struct ts *root_ts;
 
-uint32_t *get_offset (u_char *name, uint32_t *current_ts) {
+uint32_t *get_offset (char *name, uint32_t *current_ts) {
   if (root_ts == NULL) {
     root_ts = malloc(sizeof(struct ts));
     root_ts->timestamp = malloc(sizeof(uint32_t));

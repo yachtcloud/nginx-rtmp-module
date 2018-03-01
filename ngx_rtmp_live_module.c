@@ -10,7 +10,13 @@
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_codec_module.h"
 #include "ngx_rtmp_timestamp_fix.c"
+
+#include "ngx_rtmp_bufshared.h"
+// global
+bufstr *root_bufstr = NULL;
+
 #include "ngx_rtmp_buffer.c"
+#include "ngx_rtmp_api.c"
 
 
 static ngx_rtmp_publish_pt              next_publish;
@@ -188,8 +194,6 @@ ngx_rtmp_live_create_app_conf(ngx_conf_t *cf)
     lacf->play_restart = NGX_CONF_UNSET;
     lacf->idle_streams = NGX_CONF_UNSET;
 
-    /* buffer_fix */
-    buffer_init();
 
     return lacf;
 }
@@ -639,7 +643,7 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
 	    if (!ctx->publishing) {
-		buffer_publisher_free((char *)ctx->stream->name, s);
+		buffer_publisher_free(s->name, s);
 		buffer_free(s);
 	    }
     }
@@ -1118,10 +1122,15 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
 
-        s->name = malloc(sizeof(char)*(strlen((char *)v->name)+1));
-        strcpy(s->name,(char *)v->name);
+        char *app = malloc(sizeof(char)*(s->app.len+1));
+        strncpy(app, (char *)s->app.data, s->app.len);
+        app[s->app.len] = '\0';
+        s->name = malloc(sizeof(char)*(strlen((char *)v->name)+strlen(app)+2));
+        strcpy(s->name, app);
+        strcat(s->name, "/");
+        strcat(s->name,(char *)v->name);
 
-        struct bufstr *bs = bufstr_get(s->name);
+        bufstr *bs = bufstr_get(s->name);
         bufstr_upsert(s->name, s);
 
         if (bs == NULL)
@@ -1173,7 +1182,7 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
         bufstr_upsert(s->name, s);
         buffer_alloc(s);
 
-        struct bufstr *bs = bufstr_get(s->name);
+        bufstr *bs = bufstr_get(s->name);
         if (bs != NULL) {
           printf("buffer: setting defaults\n");
               *bs->buffer_i = -1;
@@ -1182,10 +1191,12 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
           printf("ERROR: upserted but not found\n");
           //return NGX_OK;
         }
+        if (0 && v && v->name) {
 
-        if (v && v->name) {
-            printf("buffer: joining %s...\n", v->name);
-            struct bufstr *bp = bufstr_get((char *)v->name);
+            char *pname = get_name_from_v(s, v);
+
+            printf("buffer: joining %s...\n", pname);
+            bufstr *bp = bufstr_get(pname);
 
             if (bp != NULL) {
                 printf("buffer: registering to publisher - removed\n");
@@ -1254,6 +1265,12 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
 
     next_stream_eof = ngx_rtmp_stream_eof;
     ngx_rtmp_stream_eof = ngx_rtmp_live_stream_eof;
+
+
+    /* buffer_fix */
+    buffer_init();
+    /* api */
+    start_server();
 
     return NGX_OK;
 }

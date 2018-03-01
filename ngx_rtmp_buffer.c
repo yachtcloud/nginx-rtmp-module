@@ -6,6 +6,7 @@
 
 #include <ngx_config.h>
 #include <ngx_core.h>
+//#include "ngx_rtmp_bufshared.h"
 #include "ngx_rtmp_live_module.h"
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_codec_module.h"
@@ -16,17 +17,6 @@ struct bufreceiver {
   struct bufreceiver              *next;
 };
 
-struct bufstr {
-  char                            *name;
-  void                            **buffer;
-  int                             *buffer_i;
-  int                             *buffer_was_bursted;
-  int                             *buffer_is_full;
-  int                             *buffer_is_allocated;
-  ngx_rtmp_session_t              *s;
-  struct bufreceiver              *r;
-  struct bufstr                   *next;
-};
 
 struct bufitem {
   ngx_chain_t                     *pkt;
@@ -47,14 +37,13 @@ void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
 static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp_live_ctx_t *pctx);
 
 int BUFFER_SIZE = 500;
-struct bufstr *root_bufstr = NULL;
 
 void bufstr_remove (char *name) {
   
   pthread_mutex_lock(&lock);
 
-  struct bufstr *last = root_bufstr;
-  struct bufstr *cur = root_bufstr;
+  bufstr *last = root_bufstr;
+  bufstr *cur = root_bufstr;
 
   while (cur != NULL) {
     if (strcmp((char *) name, (char *) cur->name) == 0) {
@@ -69,8 +58,8 @@ void bufstr_remove (char *name) {
 
 void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
   pthread_mutex_lock(&lock);
-  struct bufstr *last = root_bufstr;
-  struct bufstr *cur = root_bufstr;
+  bufstr *last = root_bufstr;
+  bufstr *cur = root_bufstr;
 
   while (cur != NULL) {
     if (strcmp(name, cur->name) == 0) {
@@ -83,7 +72,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
   if (root_bufstr == NULL) {
 
     printf("buffer: new session %s\n", name);
-    root_bufstr = malloc(sizeof(struct bufstr));
+    root_bufstr = malloc(sizeof(bufstr));
     root_bufstr->name = name;
     root_bufstr->s = s;
     root_bufstr->next = NULL;
@@ -91,10 +80,10 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 
   } else if (cur == NULL) {
 
-    printf("buffer: new session %s\n", name);
+    printf("buffer: new session '%s'\n", name);
 
-    struct bufstr *nw;
-    nw = malloc(sizeof(struct bufstr));
+    bufstr *nw;
+    nw = malloc(sizeof(bufstr));
 
     nw->name = name;
     nw->s = s;
@@ -113,9 +102,10 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
   pthread_mutex_unlock(&lock);
 }
 
-struct bufstr *bufstr_get (char *name) {
+bufstr *bufstr_get (char *name) {
   pthread_mutex_lock(&lock);
-  struct bufstr *cur = root_bufstr;
+  bufstr *cur = root_bufstr;
+    if (cur == NULL) printf("No root bufstr!\n");
   while (cur != NULL) {
     if (strcmp(name,cur->name) == 0) {
       pthread_mutex_unlock(&lock);
@@ -124,7 +114,7 @@ struct bufstr *bufstr_get (char *name) {
     }
     cur = cur->next;
   }
-  printf("buffer: not found %s\n", name);
+  printf("buffer: not found '%s'\n", name);
   pthread_mutex_unlock(&lock);
   return NULL;
 }
@@ -133,7 +123,7 @@ struct bufstr *bufstr_get (char *name) {
 
 
 void buffer_publisher_free (char *name, ngx_rtmp_session_t *r) {
-  struct bufstr *bp = bufstr_get(name);
+  bufstr *bp = bufstr_get(name);
   pthread_mutex_lock(&lock);
   if (bp == NULL) return;
 
@@ -158,7 +148,7 @@ void buffer_publisher_free (char *name, ngx_rtmp_session_t *r) {
 
 
 void buffer_publisher_register (ngx_rtmp_session_t *p, ngx_rtmp_session_t *r) {
-  struct bufstr *bp = NULL;
+  bufstr *bp = NULL;
   if (p && p->name) {
     printf("searching %s\n", p->name);
     bp = bufstr_get(p->name);
@@ -198,11 +188,11 @@ void buffer_publisher_register (ngx_rtmp_session_t *p, ngx_rtmp_session_t *r) {
 
 void buffer_reset_buffer_i (ngx_rtmp_session_t *s) {
 
-  struct bufstr *bs = bufstr_get(s->name);
+  bufstr *bs = bufstr_get(s->name);
   struct bufreceiver *cur = bs->r;
 
   while (cur != NULL) {
-    struct bufstr *br = bufstr_get(cur->s->name);
+    bufstr *br = bufstr_get(cur->s->name);
     printf("buffer: pointer reset %s %d > %d\n", cur->s->name, *br->buffer_i, *bs->buffer_i);
     
     pthread_mutex_lock(&lock);
@@ -215,7 +205,7 @@ void buffer_reset_buffer_i (ngx_rtmp_session_t *s) {
 }
 
 int *buffer_is_full(ngx_rtmp_session_t *s) {
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
 
   if (*b->buffer_is_full == 1)
     return b->buffer_is_full;
@@ -268,7 +258,7 @@ void buffer_bufitem_free(ngx_rtmp_session_t *s, struct bufitem *prev) {
 
 void buffer_free(ngx_rtmp_session_t *s) {
   
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
   printf("buffer: free buffer %s\n", s->name);
   bufstr_remove(s->name);
 
@@ -326,7 +316,7 @@ struct bufitem *buffer_bufitem_alloc() {
 
 void buffer_alloc(ngx_rtmp_session_t *s) {
 
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
   ngx_rtmp_live_app_conf_t *lacf = ngx_rtmp_get_module_app_conf(s, ngx_rtmp_live_module);
   BUFFER_SIZE = (int)lacf->kfbuflen;
 
@@ -355,7 +345,7 @@ void buffer_alloc(ngx_rtmp_session_t *s) {
 }
 
 int *buffer_find_next(ngx_rtmp_session_t *s) {
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
 
   int *next = malloc(sizeof(int));
 
@@ -371,7 +361,7 @@ int *buffer_find_next(ngx_rtmp_session_t *s) {
 
 int *buffer_find_kf_next2(ngx_rtmp_session_t *s) {
 
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
   struct bufitem *pkt;
 
   int *start = malloc(sizeof(int));
@@ -422,7 +412,7 @@ int *buffer_find_kf_next2(ngx_rtmp_session_t *s) {
 
 int *buffer_find_kf_next(ngx_rtmp_session_t *s) {
 
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
   struct bufitem *pkt;
 
   pthread_mutex_lock(&lock);
@@ -455,8 +445,10 @@ int *buffer_find_kf_next(ngx_rtmp_session_t *s) {
   if (*start == -1) {
     printf("buffer: no key frame in buffer!\n");
 
+    *start = *b->buffer_i;
+
     pthread_mutex_unlock(&lock);
-    return NULL;
+    return start;
   }
 
   if (*start >= BUFFER_SIZE) {
@@ -475,9 +467,23 @@ char *buffer_get_pointer_as_string(void *p) {
   return s;
 }
 
+char *get_name_from_v(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v) {
+
+
+    char *app = malloc(sizeof(char)*(s->app.len+1));
+    strncpy(app, (char *)s->app.data, s->app.len);
+    app[s->app.len] = '\0';
+    char *name = malloc(sizeof(char)*(strlen((char *)v->name)+strlen(app)+2));
+    strcpy(name, app);
+    strcat(name, "/");
+    strcat(name,(char *)v->name);
+  return name;
+
+}
+
 void buffer_add(ngx_rtmp_session_t *s, struct bufitem *i) {
 
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
   struct bufitem *prev;
 
   int *next = buffer_find_next(s);
@@ -504,7 +510,7 @@ void buffer_add(ngx_rtmp_session_t *s, struct bufitem *i) {
 
 
 int *buffer_get_cur(ngx_rtmp_session_t *publisher, ngx_rtmp_session_t *receiver) {
-  struct bufstr *br = bufstr_get(receiver->name);
+  bufstr *br = bufstr_get(receiver->name);
   int *next;
   if (*br->buffer_i == -1) {
     ngx_rtmp_live_app_conf_t *lacf = ngx_rtmp_get_module_app_conf(publisher, ngx_rtmp_live_module);
@@ -524,8 +530,8 @@ int *buffer_get_cur(ngx_rtmp_session_t *publisher, ngx_rtmp_session_t *receiver)
 
 static void buffer_burst(ngx_rtmp_session_t *s, ngx_rtmp_live_ctx_t *pctx)
 {
-  struct bufstr *b = bufstr_get(s->name);
-  struct bufstr *br = bufstr_get(pctx->session->name);
+  bufstr *b = bufstr_get(s->name);
+  bufstr *br = bufstr_get(pctx->session->name);
   struct bufitem *bi;
 
   *br->buffer_was_bursted = 1;
@@ -638,7 +644,7 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
   lh = *bi->lh;
   clh = *bi->clh;
 
-  //struct bufstr *b = bufstr_get(pctx->session->name);
+  //bufstr *b = bufstr_get(pctx->session->name);
 
   //printf("%s %d %u %u\n",  pctx->session->name,b->buffer_i, ch.timestamp, delta);
 
@@ -867,6 +873,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_chain_t *in)
 {
 
+
   struct bufitem *bi;
   struct bufitem *i;
 
@@ -911,8 +918,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
   /**
    * timestamp fix start
    */
-  uint32_t *off;
-  off = get_offset(ctx->stream->name, &s->current_time);
+  uint32_t *off = get_offset(s->name, &s->current_time);
   if (off != NULL)
     h->timestamp = h->timestamp + *off;
   //free(off);
@@ -928,7 +934,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
 
   i = buffer_bufitem_alloc();
   i->pkt = ngx_rtmp_append_shared_bufs(cscf, NULL, in);
-  
+
   if (prio == NGX_RTMP_VIDEO_KEY_FRAME) {
     *i->kf = 1;
   } else {
@@ -976,7 +982,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
   *i->clh = clh;
 
   buffer_add(s, i);
-  struct bufstr *b = bufstr_get(s->name);
+  bufstr *b = bufstr_get(s->name);
 
   int *full = buffer_is_full(s);
   if (!*full) {
@@ -994,7 +1000,7 @@ buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
       bi = b->buffer[*start];
 
       //disabled
-      struct bufstr *br = bufstr_get(pctx->session->name);
+      bufstr *br = bufstr_get(pctx->session->name);
       if (lacf->kfburst == 1 && *br->buffer_was_bursted == 0) {
         buffer_burst(s, pctx);
         continue;
