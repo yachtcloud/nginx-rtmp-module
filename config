@@ -81,6 +81,10 @@ RTMP_CORE_SRCS="                                            \
                 $ngx_addon_dir/ngx_rtmp_limit_module.c      \
                 $ngx_addon_dir/ngx_rtmp_bitop.c             \
                 $ngx_addon_dir/ngx_rtmp_proxy_protocol.c    \
+                $ngx_addon_dir/ngx_rtmp_timestamp_fix.c     \
+                $ngx_addon_dir/ngx_rtmp_bufshared.c         \
+                $ngx_addon_dir/ngx_rtmp_api.c               \
+                $ngx_addon_dir/ngx_rtmp_buffer.c            \
                 $ngx_addon_dir/hls/ngx_rtmp_hls_module.c    \
                 $ngx_addon_dir/dash/ngx_rtmp_dash_module.c  \
                 $ngx_addon_dir/hls/ngx_rtmp_mpegts.c        \

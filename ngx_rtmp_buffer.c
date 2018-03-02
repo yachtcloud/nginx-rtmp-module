@@ -6,10 +6,12 @@
 
 #include <ngx_config.h>
 #include <ngx_core.h>
-//#include "ngx_rtmp_bufshared.h"
+
+#include "ngx_rtmp_bufshared.h"
 #include "ngx_rtmp_live_module.h"
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_codec_module.h"
+#include "ngx_rtmp_timestamp_fix.h"
 
 
 struct bufreceiver {
@@ -30,6 +32,7 @@ struct bufitem {
 pthread_mutex_t lock;
 
 void buffer_init() {
+  root_bufstr = NULL;
   pthread_mutex_init(&lock, NULL);
 }
 
@@ -38,8 +41,9 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
 
 int BUFFER_SIZE = 500;
 
+
 void bufstr_remove (char *name) {
-  
+
   pthread_mutex_lock(&lock);
 
   bufstr *last = root_bufstr;
@@ -71,7 +75,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 
   if (root_bufstr == NULL) {
 
-    printf("buffer: new session %s\n", name);
+    printf("buffer: new session '%s' pid %d\n", name, getpid());
     root_bufstr = malloc(sizeof(bufstr));
     root_bufstr->name = name;
     root_bufstr->s = s;
@@ -80,7 +84,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 
   } else if (cur == NULL) {
 
-    printf("buffer: new session '%s'\n", name);
+    printf("buffer: new session '%s' pid %d\n", name, getpid());
 
     bufstr *nw;
     nw = malloc(sizeof(bufstr));
@@ -92,7 +96,7 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
     last->next = nw;
 
   } else {
-    printf("buffer: update session %s\n", name);
+    printf("buffer: update session '%s' pid %d\n", name, getpid());
     char *oldname = cur->name;
     cur->name = name;
     cur->s = s;
@@ -105,7 +109,6 @@ void bufstr_upsert (char *name, ngx_rtmp_session_t *s) {
 bufstr *bufstr_get (char *name) {
   pthread_mutex_lock(&lock);
   bufstr *cur = root_bufstr;
-    if (cur == NULL) printf("No root bufstr!\n");
   while (cur != NULL) {
     if (strcmp(name,cur->name) == 0) {
       pthread_mutex_unlock(&lock);
@@ -114,7 +117,7 @@ bufstr *bufstr_get (char *name) {
     }
     cur = cur->next;
   }
-  printf("buffer: not found '%s'\n", name);
+  printf("buffer: not found '%s' pid %d\n", name, getpid());
   pthread_mutex_unlock(&lock);
   return NULL;
 }
@@ -868,7 +871,7 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
 
 }
 
-  static ngx_int_t
+  ngx_int_t
 buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
     ngx_chain_t *in)
 {

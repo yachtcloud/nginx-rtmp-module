@@ -6,17 +6,14 @@
 
 #include <ngx_config.h>
 #include <ngx_core.h>
+#include <ngx_process.h>
 #include "ngx_rtmp_live_module.h"
 #include "ngx_rtmp_cmd_module.h"
 #include "ngx_rtmp_codec_module.h"
-#include "ngx_rtmp_timestamp_fix.c"
 
+#include "ngx_rtmp_timestamp_fix.h"
 #include "ngx_rtmp_bufshared.h"
-// global
-bufstr *root_bufstr = NULL;
-
-#include "ngx_rtmp_buffer.c"
-#include "ngx_rtmp_api.c"
+#include "ngx_rtmp_api.h"
 
 
 static ngx_rtmp_publish_pt              next_publish;
@@ -1131,6 +1128,12 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
         strcat(s->name,(char *)v->name);
 
         bufstr *bs = bufstr_get(s->name);
+        if (root_bufstr == NULL) {
+            int slot = (int) ngx_process_slot;
+            int port = api_port + slot + 1;
+            printf("api port set %d for pid %d\n", port, getpid());
+            start_server(port);
+        }
         bufstr_upsert(s->name, s);
 
         if (bs == NULL)
@@ -1266,11 +1269,12 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     next_stream_eof = ngx_rtmp_stream_eof;
     ngx_rtmp_stream_eof = ngx_rtmp_live_stream_eof;
 
-
     /* buffer_fix */
     buffer_init();
-    /* api */
-    start_server();
+
+    /* api of the master process */
+    printf("starting api at port %d\n", api_port);
+    start_server(api_port);
 
     return NGX_OK;
 }
