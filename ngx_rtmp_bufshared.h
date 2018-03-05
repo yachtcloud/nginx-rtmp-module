@@ -17,6 +17,7 @@ typedef struct bufstr {
   ngx_rtmp_session_t              *s;
   struct bufreceiver              *r;
   struct bufstr                   *next;
+  int                             buffer_size;
 } bufstr;
 
 struct bufstr *bufstr_get (char *name);
