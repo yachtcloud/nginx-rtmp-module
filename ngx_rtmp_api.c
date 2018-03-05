@@ -11,6 +11,34 @@
 
 int api_port = 32000;
 
+void do_stop(ngx_rtmp_session_t *s) {
+
+	ngx_rtmp_core_srv_conf_t   *cscf;
+    ngx_chain_t                *control;
+    ngx_chain_t                *status[3];
+    size_t                      n, nstatus;
+
+    cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
+
+    control = ngx_rtmp_create_stream_eof(s, NGX_RTMP_MSID);
+
+    nstatus = 0;
+
+    status[nstatus++] = ngx_rtmp_create_status(s,
+                "NetStream.Play.UnpublishNotify",
+                "status", "Stop publishing");
+
+    ngx_rtmp_live_set_status(s, control, status, nstatus, 0);
+
+    if (control) {
+        ngx_rtmp_free_shared_chain(cscf, control);
+    }
+
+    for (n = 0; n < nstatus; ++n) {
+        ngx_rtmp_free_shared_chain(cscf, status[n]);
+    }
+}
+
 void do_disconnect(const char *app, const char *stream) {
 
 	char *name = malloc(sizeof(char)*(strlen(app)+strlen(stream)+1));
@@ -23,7 +51,8 @@ void do_disconnect(const char *app, const char *stream) {
 	bufstr *bp = bufstr_get(name);
 	if (bp != NULL) {
 		//printf("process %d: disconnecting viewers from '%s/%s'\n", (int) ngx_process_slot, app, stream);
-		//ngx_rtmp_session_t *s = bp->s;
+		ngx_rtmp_session_t *s = bp->s;
+		do_stop(s);
 
 		printf("process %d: ok\n", (int) ngx_process_slot);
 	} else {
@@ -37,28 +66,21 @@ void handle_disconnect (struct evhttp_request *request, void *privParams) {
 	struct evkeyvalq headers;
 	const char *app;
 	const char *stream;
-	// Parse the query for later lookups
-	evhttp_parse_query (evhttp_request_get_uri (request), &headers);
 
+	evhttp_parse_query (evhttp_request_get_uri (request), &headers);
 	app = evhttp_find_header (&headers, "app");
 	stream = evhttp_find_header (&headers, "stream");
 
 	do_disconnect(app, stream);
 
-	// Create an answer buffer where the data to send back to the browser will be appened
 	buffer = evbuffer_new ();
 	evbuffer_add (buffer, "ok", 2);
 
-	// Add a HTTP header, an application/json for the content type here
 	evhttp_add_header (evhttp_request_get_output_headers (request),
 			"Content-Type", "text/plain");
-
-	// Tell we're done and data should be sent back
+	// reply
 	evhttp_send_reply(request, HTTP_OK, "OK", buffer);
-
-	// Free up stuff
 	evhttp_clear_headers (&headers);
-
 	evbuffer_free (buffer);
 
 	return;
@@ -140,48 +162,25 @@ void *do_start_server (void *port) {
 	struct event_base *ebase;
 	struct evhttp *server;
 
-	// Create a new event handler
 	ebase = event_base_new ();;
-
-	// Create a http server using that handler
 	server = evhttp_new (ebase);
-
-	// Limit serving GET requests
 	evhttp_set_allowed_methods (server, EVHTTP_REQ_GET);
 
-	// Set a test callback, /testing
 	evhttp_set_cb (server, "/disconnect", handle_disconnect_master, 0);
-
-	// Set a test callback, /testing
 	evhttp_set_cb (server, "/do_disconnect", handle_disconnect, 0);
 
-	// Set the callback for anything not recognized
 	evhttp_set_gencb (server, notfound, 0);
 
-	// Listen locally on port 32001
-
-	char *ip = malloc(sizeof(char)*12);
 	int *port_i = (int *) port;
 
-	if (api_port == *port_i) {
-		ip = "0.0.0.0";
-	} else {
-		ip = "127.0.0.1";
-	}
+	if (evhttp_bind_socket (server, api_port == *port_i ? "0.0.0.0" : "127.0.0.1", (int) *port_i) != 0)
+		printf("Could not bind to port %d", (int) *port_i);
 
-	if (evhttp_bind_socket (server, ip, (int) *port_i) != 0)
-		printf("Could not bind to %s:%d", ip, (int) *port_i);
-
-	// Start processing queries
 	event_base_dispatch(ebase);
 
-	// Free up stuff
 	evhttp_free (server);
-
 	event_base_free (ebase);
-
 	return NULL;
-
 }
 
 void start_server(int port) {

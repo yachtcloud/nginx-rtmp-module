@@ -86,6 +86,8 @@ typedef struct {
 extern ngx_module_t  ngx_rtmp_live_module;
 
 void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
-
+void ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
+        ngx_chain_t **status, size_t nstatus,
+        unsigned active);
 
 #endif /* _NGX_RTMP_LIVE_H_INCLUDED_ */

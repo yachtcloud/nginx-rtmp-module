@@ -312,7 +312,7 @@ ngx_rtmp_live_idle(ngx_event_t *pev)
 }
 
 
-    static void
+void
 ngx_rtmp_live_set_status(ngx_rtmp_session_t *s, ngx_chain_t *control,
         ngx_chain_t **status, size_t nstatus,
         unsigned active)
