@@ -23,9 +23,7 @@ void do_stop(ngx_rtmp_session_t *s) {
 
     control = ngx_rtmp_create_stream_eof(s, NGX_RTMP_MSID);
 
-    nstatus = 0;
-
-    status[nstatus++] = ngx_rtmp_create_status(s,
+    status[0] = ngx_rtmp_create_status(s,
                 "NetStream.Play.UnpublishNotify",
                 "status", "Stop publishing");
 
@@ -50,10 +48,14 @@ void do_disconnect(const char *app, const char *stream) {
 	printf("%s!\n", name);
 
 	bufstr *bp = bufstr_get(name);
+
+    free(name);
 	if (bp != NULL) {
 		//printf("process %d: disconnecting viewers from '%s/%s'\n", (int) ngx_process_slot, app, stream);
-		ngx_rtmp_session_t *s = bp->s;
-		do_stop(s);
+        if (bp->s != NULL) {
+            ngx_rtmp_session_t *s = bp->s;
+            do_stop(s);
+        }
 
 		printf("process %d: ok\n", (int) ngx_process_slot);
 	} else {
@@ -72,7 +74,9 @@ void handle_disconnect (struct evhttp_request *request, void *privParams) {
 	app = evhttp_find_header (&headers, "app");
 	stream = evhttp_find_header (&headers, "stream");
 
-	do_disconnect(app, stream);
+    if (app != NULL && stream != NULL) {
+    	do_disconnect(app, stream);
+    }
 
 	buffer = evbuffer_new ();
 	evbuffer_add (buffer, "ok", 2);
@@ -88,11 +92,6 @@ void handle_disconnect (struct evhttp_request *request, void *privParams) {
 }
 
 void disconnect_request_done(struct evhttp_request *req, void *arg){
-    //char buf[1024];
-    //int s = evbuffer_remove(req->input_buffer, &buf, sizeof(buf) - 1);
-    //buf[s] = '\0';
-    //printf("%s\n", buf);
-    // terminate event_base_dispatch()
     event_base_loopbreak((struct event_base *)arg);
 }
 
@@ -108,31 +107,35 @@ void handle_disconnect_master (struct evhttp_request *request, void *privParams)
 	stream = evhttp_find_header (&headers, "stream");
 
 	//send request to all apis for each worker process
-	int n = (int) ngx_last_process;
-	for (int i=0; i<n; i++) {
-        char *url = malloc(sizeof(char)*(strlen(app)+strlen(stream)+100));
-		int port = api_port+i+1;
+    if (app != NULL && stream != NULL) {
+        int n = (int) ngx_last_process;
+        for (int i=0; i<n; i++) {
+            char *url = malloc(sizeof(char)*(strlen(app)+strlen(stream)+100));
+            int port = api_port+i+1;
 
-		strcpy(url, "/do_disconnect?app=");
-		strcat(url, app);
-		strcat(url, "&stream=");
-		strcat(url, stream);
+            strcpy(url, "/do_disconnect?app=");
+            strcat(url, app);
+            strcat(url, "&stream=");
+            strcat(url, stream);
 
-		struct event_base *base;
-        struct evhttp_connection *conn;
-        struct evhttp_request *req;
+            struct event_base *base;
+            struct evhttp_connection *conn;
+            struct evhttp_request *req;
 
-        base = event_base_new();
-        conn = evhttp_connection_base_new(base, NULL, "127.0.0.1", port);
-        req = evhttp_request_new(disconnect_request_done, base);
+            base = event_base_new();
+            conn = evhttp_connection_base_new(base, NULL, "127.0.0.1", port);
+            req = evhttp_request_new(disconnect_request_done, base);
 
-        evhttp_add_header(req->output_headers, "Host", "localhost");
-        //evhttp_add_header(req->output_headers, "Connection", "close");
+            evhttp_add_header(req->output_headers, "Host", "localhost");
+            //evhttp_add_header(req->output_headers, "Connection", "close");
 
-        evhttp_make_request(conn, req, EVHTTP_REQ_GET, url);
-        evhttp_connection_set_timeout(req->evcon, 600);
-        event_base_dispatch(base);
-	}
+            evhttp_make_request(conn, req, EVHTTP_REQ_GET, url);
+            evhttp_connection_set_timeout(req->evcon, 600);
+            event_base_dispatch(base);
+	        
+            event_base_free (base);
+        }
+    }
 
 	// Create an answer buffer where the data to send back to the browser will be appened
 	buffer = evbuffer_new ();
