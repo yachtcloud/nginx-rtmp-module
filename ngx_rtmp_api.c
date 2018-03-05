@@ -17,7 +17,7 @@ void do_stop(ngx_rtmp_session_t *s) {
 	ngx_rtmp_core_srv_conf_t   *cscf;
     ngx_chain_t                *control;
     ngx_chain_t                *status[3];
-    size_t                      n, nstatus;
+    size_t                      n;
 
     cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
 
@@ -27,13 +27,13 @@ void do_stop(ngx_rtmp_session_t *s) {
                 "NetStream.Play.UnpublishNotify",
                 "status", "Stop publishing");
 
-    ngx_rtmp_live_set_status(s, control, status, nstatus, 0);
+    ngx_rtmp_live_set_status(s, control, status, 1, 0);
 
     if (control) {
         ngx_rtmp_free_shared_chain(cscf, control);
     }
 
-    for (n = 0; n < nstatus; ++n) {
+    for (n = 0; n < 1; ++n) {
         ngx_rtmp_free_shared_chain(cscf, status[n]);
     }
 }
