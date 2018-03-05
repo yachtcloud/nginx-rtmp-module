@@ -133,6 +133,7 @@ void handle_disconnect_master (struct evhttp_request *request, void *privParams)
             evhttp_connection_set_timeout(req->evcon, 600);
             event_base_dispatch(base);
 	        
+            free(url);
             event_base_free (base);
         }
     }
