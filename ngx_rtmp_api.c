@@ -179,6 +179,8 @@ void *do_start_server (void *port) {
 
 	int *port_i = (int *) port;
 
+    printf("do_start_server at %d ip %s\n", *port_i,  api_port == *port_i ? "0.0.0.0" : "127.0.0.1");
+
 	if (evhttp_bind_socket (server, api_port == *port_i ? "0.0.0.0" : "127.0.0.1", (int) *port_i) != 0)
 		printf("Could not bind to port %d", (int) *port_i);
 
@@ -191,6 +193,7 @@ void *do_start_server (void *port) {
 
 void start_server(int port) {
 
+    printf("start_server at port %d\n", port);
 	pthread_t tid;
 	int *port_i = malloc(sizeof(int));
 	*port_i = port;

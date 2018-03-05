@@ -1181,6 +1181,14 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
+
+        if (root_bufstr == NULL) {
+            int slot = (int) ngx_process_slot;
+            int port = api_port + slot + 1;
+            printf("api port set %d for pid %d\n", port, getpid());
+            start_server(port);
+        }
+
         s->name = buffer_get_pointer_as_string(s);
         bufstr_upsert(s->name, s);
         buffer_alloc(s);
