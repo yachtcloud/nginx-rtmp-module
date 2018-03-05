@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <pthread.h>
 #include <evhttp.h>
 #include <stdlib.h>
 #include <ngx_config.h>

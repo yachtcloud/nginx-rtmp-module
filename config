@@ -97,7 +97,7 @@ RTMP_HTTP_SRCS="                                            \
                 $ngx_addon_dir/ngx_rtmp_control_module.c    \
                 "
 
-ngx_module_libs=-levent
+ngx_module_libs="-levent -pthread"
 
 if [ -f auto/module ] ; then
     ngx_module_incs=$ngx_addon_dir
