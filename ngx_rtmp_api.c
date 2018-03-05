@@ -6,8 +6,9 @@
 #include "ngx_rtmp_live_module.h"
 #include "ngx_rtmp_bufshared.h"
 
-// apt install libevent-dev
-//gcc main.c -levent -o main.o
+// to use this module install libevent-dev:
+//   apt install libevent-dev
+//   gcc main.c -levent -o main.o
 
 int api_port = 32000;
 
@@ -85,7 +86,6 @@ void handle_disconnect (struct evhttp_request *request, void *privParams) {
 
 	return;
 }
-
 
 void disconnect_request_done(struct evhttp_request *req, void *arg){
     //char buf[1024];

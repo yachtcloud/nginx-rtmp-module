@@ -13,12 +13,10 @@
 #include "ngx_rtmp_codec_module.h"
 #include "ngx_rtmp_timestamp_fix.h"
 
-
 struct bufreceiver {
     ngx_rtmp_session_t              *s;
     struct bufreceiver              *next;
 };
-
 
 struct bufitem {
     ngx_chain_t                     *pkt;
@@ -40,7 +38,6 @@ void ngx_rtmp_live_start(ngx_rtmp_session_t *s);
 static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp_live_ctx_t *pctx);
 
 int BUFFER_SIZE = 500;
-
 
 void bufstr_remove (char *name) {
 
@@ -121,9 +118,6 @@ bufstr *bufstr_get (char *name) {
     pthread_mutex_unlock(&lock);
     return NULL;
 }
-
-
-
 
 void buffer_publisher_free (char *name, ngx_rtmp_session_t *r) {
     bufstr *bp = bufstr_get(name);
@@ -510,8 +504,6 @@ void buffer_add(ngx_rtmp_session_t *s, struct bufitem *i) {
 
 }
 
-
-
 int *buffer_get_cur(ngx_rtmp_session_t *publisher, ngx_rtmp_session_t *receiver) {
     bufstr *br = bufstr_get(receiver->name);
     int *next;
@@ -871,8 +863,7 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
 
 }
 
-    ngx_int_t
-buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
+ngx_int_t buffer_ngx_rtmp_live_av(ngx_rtmp_session_t *s, ngx_rtmp_header_t *h,
         ngx_chain_t *in)
 {
 
