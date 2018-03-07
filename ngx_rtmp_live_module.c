@@ -1119,6 +1119,9 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
 
+        printf("trying to start api at port %d\n", api_port);
+        start_server(api_port);
+
         char *app = malloc(sizeof(char)*(s->app.len+1));
         strncpy(app, (char *)s->app.data, s->app.len);
         app[s->app.len] = '\0';
@@ -1181,6 +1184,9 @@ ngx_rtmp_live_play(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v)
 
     /* buffer_fix */
     if (lacf->kfbuflen > 0) {
+
+        printf("trying to start api at port %d\n", api_port);
+        start_server(api_port);
 
         if (root_bufstr == NULL) {
             int slot = (int) ngx_process_slot;
@@ -1279,10 +1285,6 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
 
     /* buffer_fix */
     buffer_init();
-
-    /* api of the master process */
-    printf("starting api at port %d\n", api_port);
-    start_server(api_port);
 
     return NGX_OK;
 }

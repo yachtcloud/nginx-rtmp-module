@@ -191,12 +191,53 @@ void *do_start_server (void *port) {
 	return NULL;
 }
 
-void start_server(int port) {
+int is_port_open(int portno) {
 
-    printf("start_server at port %d\n", port);
-	pthread_t tid;
-	int *port_i = malloc(sizeof(int));
-	*port_i = port;
-	pthread_create(&tid, NULL, &do_start_server, port_i);
+    char *hostname = "localhost";
+
+    int sockfd;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        return 0;
+    }
+
+    server = gethostbyname(hostname);
+
+    if (server == NULL) {
+        close(sockfd);
+        return 0;
+    }
+
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr,
+         (char *)&serv_addr.sin_addr.s_addr,
+         server->h_length);
+
+    serv_addr.sin_port = htons(portno);
+    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) {
+        close(sockfd);
+        return 0;
+    } else {
+        close(sockfd);
+        return 1;
+    }
+
+
+}
+
+void start_server(int port) {
+    if (is_port_open(port) == 0) {
+        printf("starting server at port %d\n", port);
+        int *port_i = malloc(sizeof(int));
+	    *port_i = port;
+        pthread_t tid;
+        pthread_create(&tid, NULL, &do_start_server, port_i);
+    } else {
+        printf("port %d is already occupied\n", port);
+    }
 }
 
