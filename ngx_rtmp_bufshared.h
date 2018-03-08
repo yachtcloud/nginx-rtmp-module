@@ -33,5 +33,6 @@ char *get_name_from_v(ngx_rtmp_session_t *s, ngx_rtmp_play_t *v);
 void buffer_alloc(ngx_rtmp_session_t *s);
 
 extern bufstr *root_bufstr;
+extern int n_workers;
 
 #endif

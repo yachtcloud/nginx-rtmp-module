@@ -1286,5 +1286,11 @@ ngx_rtmp_live_postconfiguration(ngx_conf_t *cf)
     /* buffer_fix */
     buffer_init();
 
+    ngx_core_conf_t  *ccf;    
+    ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx,
+                                           ngx_core_module);
+
+    n_workers = ccf->worker_processes;
+
     return NGX_OK;
 }

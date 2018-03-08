@@ -13,6 +13,7 @@
 //   gcc main.c -levent -o main.o
 
 int api_port = 32000;
+int is_port_open(int portno);
 
 void do_stop(ngx_rtmp_session_t *s) {
 
@@ -110,34 +111,46 @@ void handle_disconnect_master (struct evhttp_request *request, void *privParams)
 
 	//send request to all apis for each worker process
     if (app != NULL && stream != NULL) {
-        int n = (int) ngx_last_process;
+        int n = n_workers;//(int) ngx_last_process;
+        char *url = malloc(sizeof(char)*(strlen(app)+strlen(stream)+100));
+
+        int port;
+
+        printf("n %d\n", n);
+
         for (int i=0; i<n; i++) {
-            char *url = malloc(sizeof(char)*(strlen(app)+strlen(stream)+100));
-            int port = api_port+i+1;
 
             strcpy(url, "/do_disconnect?app=");
             strcat(url, app);
             strcat(url, "&stream=");
             strcat(url, stream);
 
-            struct event_base *base;
-            struct evhttp_connection *conn;
-            struct evhttp_request *req;
+            port = api_port+i+1;
 
-            base = event_base_new();
-            conn = evhttp_connection_base_new(base, NULL, "127.0.0.1", port);
-            req = evhttp_request_new(disconnect_request_done, base);
+            if (is_port_open(port) == 1) {
 
-            evhttp_add_header(req->output_headers, "Host", "localhost");
-            //evhttp_add_header(req->output_headers, "Connection", "close");
+                printf("sending %d %s\n", port, url);
 
-            evhttp_make_request(conn, req, EVHTTP_REQ_GET, url);
-            evhttp_connection_set_timeout(req->evcon, 600);
-            event_base_dispatch(base);
-	        
-            free(url);
-            event_base_free (base);
+                struct event_base *base;
+                struct evhttp_connection *conn;
+                struct evhttp_request *req;
+
+                base = event_base_new();
+                conn = evhttp_connection_base_new(base, NULL, "127.0.0.1", port);
+                req = evhttp_request_new(disconnect_request_done, base);
+
+                evhttp_add_header(req->output_headers, "Host", "localhost");
+                //evhttp_add_header(req->output_headers, "Connection", "close");
+
+                evhttp_make_request(conn, req, EVHTTP_REQ_GET, url);
+                evhttp_connection_set_timeout(req->evcon, 1000);
+                event_base_dispatch(base);
+                
+                event_base_free (base);
+            }
         }
+
+        free(url);
     }
 
 	// Create an answer buffer where the data to send back to the browser will be appened

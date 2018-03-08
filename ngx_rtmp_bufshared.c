@@ -3,3 +3,4 @@
 
 // global
 bufstr *root_bufstr = NULL;
+int n_workers = 0;
