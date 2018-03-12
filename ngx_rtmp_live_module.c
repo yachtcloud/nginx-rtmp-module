@@ -637,14 +637,6 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
         }
     }
 
-    /* buffer_fix */
-    if (lacf->kfbuflen > 0) {
-	    if (!ctx->publishing) {
-		buffer_publisher_free(s->name, s);
-		buffer_free(s);
-	    }
-    }
-
     if (ctx->publishing || ctx->stream->active) {
         ngx_rtmp_live_stop(s);
     }
@@ -685,6 +677,14 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
 
     if (!ctx->silent && !ctx->publishing && !lacf->play_restart) {
         ngx_rtmp_send_status(s, "NetStream.Play.Stop", "status", "Stop live");
+    }
+
+    /* buffer_fix */
+    if (lacf->kfbuflen > 0) {
+	    if (!ctx->publishing) {
+		    //buffer_publisher_free(s->name, s);
+		    buffer_free(s);
+	    }
     }
 
 next:
