@@ -1137,12 +1137,32 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
             printf("api port set %d for pid %d\n", port, getpid());
             start_server(port);
         }
-        bufstr_upsert(s->name, s);
 
-        if (bs == NULL)
-            buffer_alloc(s);
-        else 
-            buffer_reset_buffer_i(s);
+        int upsert = 1;
+        
+        ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
+        if (ctx && ctx->stream) {
+            upsert = 0;
+            printf("buffer: already joined!\n");
+        } else {
+
+            ngx_rtmp_live_stream_t        **stream;
+            stream = ngx_rtmp_live_get_stream(s, v->name, 1);
+
+            if ((*stream)->publishing) {
+                upsert = 0;
+                printf("buffer: already publishing!\n");
+            }
+        }
+
+        if (upsert == 1) {
+            bufstr_upsert(s->name, s);
+
+            if (bs == NULL)
+                buffer_alloc(s);
+            else 
+                buffer_reset_buffer_i(s);
+        }
     }
 
     ngx_rtmp_live_join(s, v->name, 1);

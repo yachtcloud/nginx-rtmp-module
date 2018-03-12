@@ -22,6 +22,15 @@ void do_stop(ngx_rtmp_session_t *s) {
     ngx_chain_t                *status[3];
     size_t                      n;
 
+    ngx_rtmp_live_ctx_t    *ctx;
+
+    ctx = ngx_rtmp_get_module_ctx(s, ngx_rtmp_live_module);
+
+    if (ctx == NULL || ctx->stream == NULL || !ctx->publishing) {
+        printf("Not publishing!\n");
+        return;
+    }
+
     cscf = ngx_rtmp_get_module_srv_conf(s, ngx_rtmp_core_module);
 
     control = ngx_rtmp_create_stream_eof(s, NGX_RTMP_MSID);
@@ -57,7 +66,8 @@ void do_disconnect(const char *app, const char *stream) {
 		//printf("process %d: disconnecting viewers from '%s/%s'\n", (int) ngx_process_slot, app, stream);
         if (bp->s != NULL) {
             ngx_rtmp_session_t *s = bp->s;
-            do_stop(s);
+            if (s != NULL)
+                do_stop(s);
         }
 
 		printf("process %d: ok\n", (int) ngx_process_slot);

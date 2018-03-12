@@ -105,7 +105,7 @@ bufstr *bufstr_get (char *name) {
     pthread_mutex_lock(&lock);
     bufstr *cur = root_bufstr;
     while (cur != NULL) {
-        if (strcmp(name,cur->name) == 0) {
+        if (cur->name != NULL && strcmp(name,cur->name) == 0) {
             pthread_mutex_unlock(&lock);
             //printf("buffer: got %s\n", name);
             return cur;
