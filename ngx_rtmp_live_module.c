@@ -656,6 +656,15 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
         }
     }
 
+    /* buffer_fix */
+    if (lacf->kfbuflen > 0) {
+	    if (!ctx->publishing) {
+		    //buffer_publisher_free(s->name, s);
+		    buffer_free(s);
+	    }
+    }
+
+
     if (ctx->stream->ctx) {
         ctx->stream = NULL;
         goto next;
@@ -677,14 +686,6 @@ ngx_rtmp_live_close_stream(ngx_rtmp_session_t *s, ngx_rtmp_close_stream_t *v)
 
     if (!ctx->silent && !ctx->publishing && !lacf->play_restart) {
         ngx_rtmp_send_status(s, "NetStream.Play.Stop", "status", "Stop live");
-    }
-
-    /* buffer_fix */
-    if (lacf->kfbuflen > 0) {
-	    if (!ctx->publishing) {
-		    //buffer_publisher_free(s->name, s);
-		    buffer_free(s);
-	    }
     }
 
 next:
@@ -1125,10 +1126,12 @@ ngx_rtmp_live_publish(ngx_rtmp_session_t *s, ngx_rtmp_publish_t *v)
         char *app = malloc(sizeof(char)*(s->app.len+1));
         strncpy(app, (char *)s->app.data, s->app.len);
         app[s->app.len] = '\0';
-        s->name = malloc(sizeof(char)*(strlen((char *)v->name)+strlen(app)+2));
-        strcpy(s->name, app);
-        strcat(s->name, "/");
-        strcat(s->name,(char *)v->name);
+        char *name = malloc(sizeof(char)*(strlen((char *)v->name)+strlen(app)+2));
+        strcpy(name, app);
+        free(app);
+        strcat(name, "/");
+        strcat(name, (char *)v->name);
+        s->name = name;
 
         bufstr *bs = bufstr_get(s->name);
         if (root_bufstr == NULL) {

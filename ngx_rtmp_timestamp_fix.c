@@ -27,7 +27,7 @@ uint32_t *get_offset (char *name, uint32_t *current_ts) {
     struct ts *cur = root_ts;
     struct ts *last = root_ts;
     while (cur != NULL) {
-        if (strcmp((char *) name, (char *) cur->name) == 0) {
+        if (strcmp(name,cur->name) == 0) {
             break;
         }
         last = cur;

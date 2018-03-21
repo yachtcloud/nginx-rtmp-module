@@ -39,19 +39,35 @@ static ngx_int_t buffer_send(ngx_rtmp_session_t *s, struct bufitem *bi, ngx_rtmp
 
 void bufstr_remove (char *name) {
 
+    if (root_bufstr == NULL) return;
     pthread_mutex_lock(&lock);
 
     bufstr *last = root_bufstr;
     bufstr *cur = root_bufstr;
 
     while (cur != NULL) {
-        if (strcmp((char *) name, (char *) cur->name) == 0) {
-            last->next = cur->next;
+        if (strcmp(name,cur->name) == 0) {
             break;
         }
         last = cur;
         cur = cur->next;
     }
+    // start
+    if (root_bufstr == cur) {
+        printf("bufstr_remove: removing start\n");
+        root_bufstr = root_bufstr->next;
+    }
+    // end
+    else if (cur->next == NULL && last != NULL) {
+        printf("bufstr_remove: removing end\n");
+        last->next = NULL;
+    }
+    // middle
+    else if (cur->next != NULL && last != NULL) {
+        printf("bufstr_remove: removing middle\n");
+        last->next = cur->next;
+    }
+    
     pthread_mutex_unlock(&lock);
 }
 
@@ -105,7 +121,7 @@ bufstr *bufstr_get (char *name) {
     pthread_mutex_lock(&lock);
     bufstr *cur = root_bufstr;
     while (cur != NULL) {
-        if (cur->name != NULL && strcmp(name,cur->name) == 0) {
+        if (strcmp(name,cur->name) == 0) {
             pthread_mutex_unlock(&lock);
             //printf("buffer: got %s\n", name);
             return cur;
@@ -272,6 +288,7 @@ void buffer_free(ngx_rtmp_session_t *s) {
 
     pthread_mutex_lock(&lock);
     printf("buffer: freeing vars\n");
+
     if (b->name != NULL)
         free(b->name);
     if (b->buffer != NULL)
